@@ -1,0 +1,32 @@
+# =============================================================================
+# PAYMENT SERVICE - Network Endpoint for Payment Processing
+# =============================================================================
+# Exposes the Payment service for checkout transactions.
+#
+# ENDPOINTS:
+# ----------
+# POST /pay - Process a payment (cart_id, user_id, payment details)
+#
+# WHO CALLS THIS?
+# ---------------
+# - Web frontend: When user clicks "Pay Now" at checkout
+#
+# SECURITY NOTE:
+# --------------
+# In production, this would handle sensitive payment data.
+# Always use HTTPS and comply with PCI-DSS standards!
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  labels:
+    service: payment
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  selector:
+    service: payment

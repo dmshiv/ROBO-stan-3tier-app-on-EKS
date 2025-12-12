@@ -1,0 +1,31 @@
+# =============================================================================
+# MYSQL SERVICE - Network Endpoint for MySQL Database
+# =============================================================================
+# Exposes MySQL so other services can connect and run queries.
+#
+# CONNECTION STRING:
+# ------------------
+# Other services connect via: mysql://mysql:3306/database
+# The hostname "mysql" is resolved by Kubernetes DNS to this Service
+#
+# WHO CONNECTS?
+# -------------
+# - Ratings service: Stores and retrieves product ratings
+# - Shipping service: Queries shipping rates by city
+#
+# PORT 3306: Standard MySQL port (don't change unless you have a reason)
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: mysql
+  name: mysql
+spec:
+  ports:
+  - name: mysql
+    port: 3306
+    targetPort: 3306
+  selector:
+    service: mysql

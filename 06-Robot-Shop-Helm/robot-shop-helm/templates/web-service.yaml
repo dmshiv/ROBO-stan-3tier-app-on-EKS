@@ -1,0 +1,69 @@
+# =============================================================================
+# WEB SERVICE - Network Endpoint for Web Frontend
+# =============================================================================
+# A Kubernetes Service provides a stable network endpoint for accessing pods.
+#
+# WHAT IS A SERVICE?
+# ------------------
+# Think of it like a "receptionist" for your pods:
+# - Pods come and go (they get new IPs when restarted)
+# - Service provides a stable IP/DNS name that never changes
+# - It load-balances traffic across all matching pods
+#
+# SERVICE TYPES EXPLAINED:
+# ------------------------
+# ClusterIP (default): Internal only - accessible within the cluster
+# NodePort: Exposes on each node's IP at a static port (30000-32767)
+# LoadBalancer: Provisions external load balancer (AWS ELB, etc.)
+#
+# WHY CLUSTERIP HERE?
+# -------------------
+# We use ClusterIP because external traffic comes through Ingress/ALB.
+# The ALB routes traffic to this Service, which then reaches the pods.
+#
+# TRAFFIC FLOW:
+# User → ALB → Ingress → Service (ClusterIP) → Pod(s)
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  labels:
+    service: web
+spec:
+  # Ports: How to reach the service and where to forward traffic
+  ports:
+  - name: http
+    # port: The port THIS SERVICE listens on (what other services use)
+    port: 8080
+    # targetPort: The port on the POD to forward traffic to
+    # (matches containerPort in the deployment)
+    targetPort: 8080
+  
+  # Selector: Which pods receive traffic from this service
+  # All pods with label "service: web" will get traffic
+  selector:
+    service: web
+  
+  # ClusterIP: Internal-only access
+  # External users access via Ingress Controller / ALB
+  type: ClusterIP
+---
+# =============================================================================
+# OPENSHIFT ROUTE (CONDITIONAL)
+# =============================================================================
+# Routes are OpenShift's native way to expose services externally
+# Only created if ocCreateRoute=true in values.yaml
+# On standard Kubernetes, we use Ingress instead
+# =============================================================================
+{{if .Values.ocCreateRoute}}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: web
+spec:
+  to:
+    kind: Service
+    name: web
+{{end}}

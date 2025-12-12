@@ -1,0 +1,27 @@
+# =============================================================================
+# RATINGS SERVICE - Network Endpoint for Reviews & Ratings API
+# =============================================================================
+# Exposes the Ratings service for product reviews.
+#
+# ENDPOINTS:
+# ----------
+# GET /ratings/{productId} - Get ratings for a product
+# POST /ratings/{productId} - Submit a rating
+#
+# NOTE: Uses port 80 (PHP/Apache default)
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ratings
+  labels:
+    service: ratings
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    service: ratings
+

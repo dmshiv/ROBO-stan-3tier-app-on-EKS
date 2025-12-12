@@ -1,0 +1,82 @@
+# =============================================================================
+# CATALOGUE SERVICE DEPLOYMENT - Product Catalog API
+# =============================================================================
+# This service provides the product catalog - all the robots you can buy!
+#
+# WHAT DOES THIS SERVICE DO?
+# --------------------------
+# 1. Serves product listings (GET /products)
+# 2. Returns product details (GET /product/{id})
+# 3. Handles product search and filtering
+# 4. Provides product images and descriptions
+#
+# DATA FLOW:
+# ----------
+# Web Frontend → "Show me robots" → Catalogue Service → MongoDB → Product list
+#
+# DEPENDENCIES:
+# -------------
+# - MongoDB: Stores all product data (name, price, description, images)
+#
+# TECHNOLOGY: NodeJS
+# WHY? Fast for JSON APIs, easy MongoDB integration with Mongoose
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalogue
+  labels:
+    service: catalogue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: catalogue
+  template:
+    metadata:
+      labels:
+        service: catalogue
+    spec:
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      containers:
+      - name: catalogue
+        image: {{ .Values.image.repo }}/rs-catalogue:{{ .Values.image.version }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # Instana APM agent for distributed tracing
+        env:
+          - name: INSTANA_AGENT_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+        
+        ports:
+        - containerPort: 8080
+        
+        # Lightweight service - minimal resources needed
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+      
+      restartPolicy: Always
+      
+      # Optional scheduling preferences
+      {{- with .Values.catalogue.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.catalogue.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.catalogue.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

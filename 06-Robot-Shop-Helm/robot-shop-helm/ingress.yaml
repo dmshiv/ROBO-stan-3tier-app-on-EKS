@@ -1,0 +1,87 @@
+# =============================================================================
+# INGRESS - External Access to Robot Shop via AWS ALB
+# =============================================================================
+# Ingress is like a "front door" that routes external traffic into your cluster.
+#
+# WHAT IS INGRESS?
+# ----------------
+# Think of Ingress like a smart receptionist at a building:
+# - External users arrive at the building (ALB)
+# - The receptionist (Ingress) checks where they want to go
+# - Routes them to the right office (Service/Pod)
+#
+# WHY USE INGRESS INSTEAD OF LOADBALANCER SERVICE?
+# -------------------------------------------------
+# 1. COST: One ALB for many services (vs one LoadBalancer per service)
+# 2. ROUTING: Route based on URL path (/api, /web, /admin)
+# 3. TLS: Handle SSL certificates in one place
+# 4. FEATURES: Custom headers, redirects, rate limiting
+#
+# AWS ALB INGRESS CONTROLLER:
+# ---------------------------
+# This Ingress uses AWS Application Load Balancer (ALB)
+# The ALB Ingress Controller watches for Ingress objects and creates ALBs
+#
+# TRAFFIC FLOW:
+# User → Internet → ALB → Target Group → Pod IP (target-type: ip)
+#
+# COST ESTIMATE:
+# ALB: ~$16/month base + $0.008/LCU-hour
+# Much cheaper than multiple Classic ELBs
+# =============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  # Namespace where this Ingress lives (must match your app namespace)
+  namespace: robot-shop
+  name: robot-shop-ingress
+  
+  # Annotations: Configuration for the Ingress Controller
+  # Different controllers use different annotations (nginx vs alb vs traefik)
+  annotations:
+    # Which Ingress Controller should handle this Ingress
+    kubernetes.io/ingress.class: alb
+    
+    # SCHEME: Where is the ALB accessible from?
+    # internet-facing: Public internet (has public IP)
+    # internal: Only from within VPC (private IP only)
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    
+    # TARGET TYPE: How does ALB send traffic to pods?
+    # ip: Direct to pod IP (faster, requires VPC CNI)
+    # instance: To NodePort on EC2 instance (extra hop)
+    alb.ingress.kubernetes.io/target-type: ip
+    
+    # HEALTH CHECK: How ALB knows if pods are healthy
+    # ALB won't send traffic to unhealthy pods
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "10"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
+    
+    # IDLE TIMEOUT: How long to keep connections open without activity
+    # 120 seconds is good for web apps with some slow operations
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=120
+    
+spec:
+  # IngressClassName: Which controller handles this (modern way, replaces annotation)
+  ingressClassName: alb
+  
+  # Rules: Define how to route incoming traffic
+  rules:
+    # No host specified = matches all hostnames (or use: host: shop.example.com)
+    - http:
+        paths:
+          # Path: URL path to match
+          # "/" with Prefix type matches everything (/, /cart, /api, etc.)
+          - path: /
+            pathType: Prefix
+            # Backend: Where to send matching traffic
+            backend:
+              service:
+                # Service name to forward traffic to
+                name: web
+                port:
+                  # Port on the service (matches service.spec.ports[].port)
+                  number: 8080

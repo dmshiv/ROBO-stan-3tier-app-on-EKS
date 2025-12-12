@@ -1,0 +1,93 @@
+# =============================================================================
+# RATINGS SERVICE DEPLOYMENT - Product Reviews & Ratings
+# =============================================================================
+# This service manages product ratings and reviews from customers.
+#
+# WHAT DOES THIS SERVICE DO?
+# --------------------------
+# 1. Stores product ratings (1-5 stars)
+# 2. Stores customer reviews (text feedback)
+# 3. Calculates average ratings for products
+# 4. Displays ratings on product pages
+#
+# DATA FLOW:
+# ----------
+# User rates product → Web → Ratings Service → MySQL (store)
+# User views product → Web → Ratings Service → MySQL (get avg) → Display stars
+#
+# WHY PORT 80 INSTEAD OF 8080?
+# ----------------------------
+# This service uses PHP/Apache, which defaults to port 80.
+# Other services (Node.js, Java) use 8080 by convention.
+# The port number doesn't matter as long as it's consistent!
+#
+# DEPENDENCIES:
+# -------------
+# - MySQL: Stores ratings and reviews in relational tables
+#
+# TECHNOLOGY: PHP with Apache
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ratings
+  labels:
+    service: ratings
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: ratings
+  template:
+    metadata:
+      labels:
+        service: ratings
+    spec:
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      containers:
+      - name: ratings
+        image: {{ .Values.image.repo }}/rs-ratings:{{ .Values.image.version }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # PHP/Apache uses port 80 (standard HTTP port)
+        ports:
+        - containerPort: 80
+        
+        # PHP is lightweight
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+        
+        # Readiness probe to check if PHP is ready
+        # /_health is the health check endpoint
+        readinessProbe:
+          httpGet:
+            path: /_health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 30
+          successThreshold: 1
+      
+      restartPolicy: Always
+      
+      # Optional scheduling preferences
+      {{- with .Values.ratings.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ratings.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ratings.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

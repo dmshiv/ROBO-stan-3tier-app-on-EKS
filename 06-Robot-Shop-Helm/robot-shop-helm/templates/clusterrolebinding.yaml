@@ -1,0 +1,46 @@
+# =============================================================================
+# CLUSTERROLEBINDING - Connects WHO Gets WHAT Permissions
+# =============================================================================
+# If ClusterRole is the "job description" (what actions are allowed),
+# then ClusterRoleBinding is the "job assignment" (who gets that job).
+#
+# REAL-WORLD ANALOGY:
+# -------------------
+# ClusterRole "security-guard" says: "Can lock/unlock doors, check IDs"
+# ClusterRoleBinding says: "John gets the security-guard role"
+# Now John can lock/unlock doors and check IDs!
+#
+# IN OUR CASE:
+# ------------
+# ClusterRole "robot-shop" says: "Can use robot-shop PSP"
+# ClusterRoleBinding says: "robot-shop ServiceAccount gets this role"
+# Now all pods using robot-shop ServiceAccount can use the PSP!
+#
+# BINDING TYPES:
+# --------------
+# - RoleBinding: Binds Role/ClusterRole in ONE namespace
+# - ClusterRoleBinding: Binds ClusterRole cluster-wide
+# =============================================================================
+
+# Only create if PSP is enabled
+{{ if .Values.psp.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: robot-shop  # Name of this binding
+
+# roleRef: WHAT role/permissions are we granting?
+roleRef:
+  apiGroup: rbac.authorization.k8s.io  # The API group for RBAC
+  kind: ClusterRole                     # We're binding a ClusterRole (not Role)
+  name: robot-shop                      # The ClusterRole named "robot-shop"
+
+# subjects: WHO gets these permissions?
+# Can be ServiceAccount, User, or Group
+subjects:
+- kind: ServiceAccount     # Type of identity
+  name: robot-shop         # Name of the ServiceAccount
+  namespace: robot-shop    # Namespace where ServiceAccount lives
+  # Note: Even though ClusterRoleBinding is cluster-wide,
+  # ServiceAccounts still live in specific namespaces
+{{ end }}

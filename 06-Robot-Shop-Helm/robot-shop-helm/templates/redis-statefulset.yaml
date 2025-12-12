@@ -1,0 +1,126 @@
+# =============================================================================
+# REDIS STATEFULSET - In-Memory Cache & Session Storage
+# =============================================================================
+# Redis is a super-fast in-memory database used for caching and sessions.
+#
+# WHAT DOES REDIS DO IN ROBOT SHOP?
+# ---------------------------------
+# 1. Stores shopping cart data (fast access, no database queries)
+# 2. Manages user sessions (login state, authentication tokens)
+# 3. Caches frequently accessed data to reduce database load
+#
+# WHY STATEFULSET INSTEAD OF DEPLOYMENT?
+# --------------------------------------
+# StatefulSet is for "stateful" applications that need:
+# - Stable, unique network identifiers (redis-0, redis-1, etc.)
+# - Stable, persistent storage (data survives pod restarts)
+# - Ordered, graceful deployment and scaling
+#
+# Deployment is for "stateless" apps where any pod can serve any request.
+# Redis needs to keep data, so StatefulSet ensures data persistence.
+#
+# REDIS DATA PERSISTENCE:
+# -----------------------
+# This config uses a PersistentVolumeClaim to store data on disk.
+# Even if the Redis pod dies, data is preserved on the EBS volume.
+#
+# PRODUCTION CONSIDERATIONS:
+# --------------------------
+# - Consider Redis Cluster or Sentinel for high availability
+# - Use ElastiCache (AWS managed Redis) for production workloads
+# - Monitor memory usage - Redis stores everything in RAM
+# =============================================================================
+
+apiVersion: apps/v1
+# StatefulSet = Kubernetes object for stateful applications
+# Unlike Deployment, it gives each pod a stable identity and storage
+kind: StatefulSet
+metadata:
+  labels:
+    service: redis
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: redis
+  
+  # serviceName links this StatefulSet to a headless Service
+  # This creates DNS records like: redis-0.redis.namespace.svc.cluster.local
+  serviceName: redis
+  
+  template:
+    metadata:
+      labels:
+        service: redis
+    spec:
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      containers:
+      - name: redis
+        # Using official Redis image (not custom robotshop image)
+        # Version 4.0.6 is stable and well-tested
+        image: redis:4.0.6
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # Redis default port
+        ports:
+        - containerPort: 6379
+        
+        # Mount the persistent volume for data storage
+        volumeMounts:
+          - name: data
+            mountPath: /mnt/redis
+        
+        # Resource limits
+        # Redis is memory-intensive - adjust based on your data size
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+      
+      restartPolicy: Always
+      
+      # Optional scheduling preferences
+      {{- with .Values.redis.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.redis.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.redis.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  
+  # VolumeClaimTemplates: Automatically create PersistentVolumeClaims for each pod
+  # This is the "magic" of StatefulSets - each pod gets its own dedicated storage
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        # Access mode: ReadWriteOnce = Only one pod can write at a time
+        # (Standard for single-replica databases)
+        accessModes: [ "ReadWriteOnce" ]
+        
+        # CONDITIONAL: Only set storage class if NOT on OpenShift
+        # OpenShift has its own dynamic storage provisioning
+        {{ if not .Values.openshift }}
+        # gp2 = AWS EBS General Purpose SSD (default, older)
+        # Consider gp3 for better price-performance (set in values.yaml)
+        storageClassName: gp2
+        volumeMode: Filesystem
+        {{ end }}
+        
+        # Request 1GB of storage
+        # Adjust based on expected cart/session data volume
+        resources:
+          requests:
+            storage: 1Gi
+

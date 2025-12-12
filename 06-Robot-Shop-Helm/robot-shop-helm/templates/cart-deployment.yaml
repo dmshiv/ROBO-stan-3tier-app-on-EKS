@@ -1,0 +1,85 @@
+# =============================================================================
+# CART SERVICE DEPLOYMENT - Shopping Cart Functionality
+# =============================================================================
+# This service manages the shopping cart for each customer session.
+#
+# WHAT DOES THIS SERVICE DO?
+# --------------------------
+# 1. Stores items users add to their cart
+# 2. Calculates cart totals
+# 3. Persists cart data across sessions (using Redis as backend)
+# 4. Communicates with Catalogue service to get product details
+#
+# TECHNOLOGY: Node.js microservice
+# DEPENDENCIES: Redis (for session storage), Catalogue service
+#
+# DATA FLOW:
+# User clicks "Add to Cart" → Web → Cart Service → Redis (store)
+# User views cart → Web → Cart Service → Redis (retrieve) → Catalogue (get prices)
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart
+  labels:
+    service: cart
+spec:
+  # Single replica is fine for demo/dev
+  # For production: Consider 2+ replicas with Redis cluster for HA
+  replicas: 1
+  selector:
+    matchLabels:
+      service: cart
+  template:
+    metadata:
+      labels:
+        service: cart
+    spec:
+      # Pod Security Policy service account (if enabled)
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      containers:
+      - name: cart
+        # Image pulls from configured repo with version tag
+        image: {{ .Values.image.repo }}/rs-cart:{{ .Values.image.version }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # Environment Variables for Instana APM agent
+        # The agent host is dynamically set to the node's IP where pod runs
+        env:
+          - name: INSTANA_AGENT_HOST
+            valueFrom:
+              fieldRef:
+                # status.hostIP = IP address of the Kubernetes node
+                # This allows the app to communicate with Instana agent on that node
+                fieldPath: status.hostIP
+        
+        # Container port for HTTP traffic
+        ports:
+        - containerPort: 8080
+        
+        # Resource limits - keeps the service lightweight
+        # Cart is a simple CRUD service, doesn't need much resources
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+      
+      # Optional scheduling preferences from values.yaml
+      {{- with .Values.cart.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.cart.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.cart.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

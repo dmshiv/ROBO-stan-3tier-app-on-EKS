@@ -1,0 +1,85 @@
+# =============================================================================
+# MONGODB DEPLOYMENT - NoSQL Database for Product Catalog & Users
+# =============================================================================
+# MongoDB is the primary database for storing product and user data.
+#
+# WHAT DOES THIS SERVICE DO?
+# --------------------------
+# 1. Stores the product catalog (robots, prices, descriptions)
+# 2. Stores user account information
+# 3. Provides fast document-based queries for the Catalogue and User services
+#
+# WHY MONGODB?
+# ------------
+# - Document database: Stores data as JSON-like documents (flexible schema)
+# - Great for product catalogs where items have varying attributes
+# - Easy horizontal scaling with sharding (for large datasets)
+#
+# PRODUCTION CONSIDERATIONS:
+# --------------------------
+# - This deployment does NOT have persistent storage (data lost on restart!)
+# - For production: Use MongoDB Atlas, AWS DocumentDB, or add PersistentVolume
+# - Consider replica sets for high availability (primary + secondaries)
+#
+# SERVICES THAT USE THIS:
+# - Catalogue service (reads product data)
+# - User service (stores user accounts and authentication)
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  labels:
+    service: mongodb
+spec:
+  # Single replica - OK for demo, NOT for production
+  # Production needs replica set (minimum 3 nodes) for HA
+  replicas: 1
+  selector:
+    matchLabels:
+      service: mongodb
+  template:
+    metadata:
+      labels:
+        service: mongodb
+    spec:
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      containers:
+      - name: mongodb
+        # Custom MongoDB image with pre-loaded Robot Shop data
+        image: {{ .Values.image.repo }}/rs-mongodb:{{ .Values.image.version }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # MongoDB default port
+        ports:
+        - containerPort: 27017
+        
+        # Resource limits
+        # MongoDB is more resource-intensive than app services
+        # In production, increase these significantly (especially memory)
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      
+      restartPolicy: Always
+      
+      # Optional scheduling preferences
+      {{- with .Values.mongodb.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mongodb.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mongodb.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,99 @@
+# =============================================================================
+# PAYMENT SERVICE DEPLOYMENT - Payment Processing
+# =============================================================================
+# This service handles payment transactions for customer orders.
+#
+# WHAT DOES THIS SERVICE DO?
+# --------------------------
+# 1. Processes payment requests from the checkout flow
+# 2. Communicates with external payment gateways (PayPal, etc.)
+# 3. Validates payment information
+# 4. Sends order confirmation to RabbitMQ for dispatch
+#
+# SECURITY NOTE:
+# --------------
+# In a real production environment:
+# - NEVER store credit card data (use tokenization)
+# - Use PCI-DSS compliant payment processors
+# - This demo simulates payments, doesn't actually charge
+#
+# DATA FLOW:
+# User checkout → Cart → Payment Service → Gateway → RabbitMQ → Dispatch
+#
+# THE "stage: prod" LABEL:
+# ------------------------
+# This extra label helps identify production vs staging deployments
+# Useful for canary deployments or A/B testing payment features
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  labels:
+    service: payment
+    # Stage label for environment identification
+    stage: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: payment
+      stage: prod
+  template:
+    metadata:
+      labels:
+        service: payment
+        stage: prod
+    spec:
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      containers:
+      - name: payment
+        image: {{ .Values.image.repo }}/rs-payment:{{ .Values.image.version }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # Environment variables for service configuration
+        env:
+          # Instana APM agent host (for distributed tracing)
+          - name: INSTANA_AGENT_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          
+          # CONDITIONAL: Custom payment gateway URL
+          # Default is PayPal, but can be overridden in values.yaml
+          # Example: helm install --set payment.gateway=https://stripe.com
+          {{- if .Values.payment.gateway }}
+          - name: PAYMENT_GATEWAY
+            value: {{ .Values.payment.gateway }}
+          {{- end }}
+        
+        ports:
+        - containerPort: 8080
+        
+        # Resource limits - payment should be fast and lightweight
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+      
+      restartPolicy: Always
+      
+      # Optional scheduling preferences
+      {{- with .Values.payment.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.payment.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.payment.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

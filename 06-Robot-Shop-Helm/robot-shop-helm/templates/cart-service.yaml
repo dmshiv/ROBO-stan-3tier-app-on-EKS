@@ -1,0 +1,28 @@
+# =============================================================================
+# CART SERVICE - Network Endpoint for Shopping Cart API
+# =============================================================================
+# Exposes the Cart service for managing shopping carts.
+#
+# ENDPOINTS:
+# ----------
+# GET /cart/{userId} - Get user's cart contents
+# POST /cart/{userId} - Add item to cart
+# DELETE /cart/{userId}/{itemId} - Remove item from cart
+#
+# WHO CALLS THIS?
+# ---------------
+# - Web frontend: For all cart operations (add, view, remove items)
+# - Payment service: To get cart total at checkout
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  selector:
+    service: cart

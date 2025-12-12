@@ -1,0 +1,44 @@
+# =============================================================================
+# HELM CHART METADATA - Chart.yaml
+# =============================================================================
+# Think of this file as the "ID card" or "passport" for your Helm chart.
+# It tells Helm:
+#   - What is this chart called?
+#   - What version is it?
+#   - Where did it come from?
+#
+# WHAT IS A HELM CHART?
+# ---------------------
+# A Helm chart is like a "package" or "installer" for Kubernetes applications.
+# Instead of manually writing 20+ YAML files, Helm bundles them together
+# and lets you install the entire app with one command: `helm install`
+#
+# WHY USE HELM?
+# -------------
+# 1. REUSABILITY: Write once, deploy many times with different settings
+# 2. TEMPLATING: Use variables ({{ .Values.xxx }}) instead of hardcoding
+# 3. VERSIONING: Track changes and rollback if something breaks
+# 4. DEPENDENCIES: Manage complex apps with multiple services
+# =============================================================================
+
+# API Version: Which Helm specification this chart follows
+# v1 = Helm 2 (older), v2 = Helm 3 (newer, but v1 still works in Helm 3)
+apiVersion: v1
+
+# Name: The unique identifier for this chart
+# Used when installing: `helm install my-release robot-shop`
+name: robot-shop
+
+# Version: The chart version (NOT the app version)
+# Follow semantic versioning: MAJOR.MINOR.PATCH
+# Bump this when you change the chart itself (templates, values, etc.)
+version: 1.1.0
+
+# Home: URL to the project's homepage or documentation
+# Helps users find more info about the application
+home: https://github.com/instana/robot-shop
+
+# Description: A brief summary of what this chart deploys
+# Shows up when running `helm search` or `helm show chart`
+description: Sample micoservices application
+

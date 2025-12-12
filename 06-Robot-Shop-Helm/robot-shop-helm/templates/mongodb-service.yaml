@@ -1,0 +1,31 @@
+# =============================================================================
+# MONGODB SERVICE - Network Endpoint for MongoDB Database
+# =============================================================================
+# Exposes MongoDB so other services can connect and query documents.
+#
+# CONNECTION STRING:
+# ------------------
+# Services connect via: mongodb://mongodb:27017/robotshop
+# Kubernetes DNS resolves "mongodb" to this Service's ClusterIP
+#
+# WHO CONNECTS?
+# -------------
+# - Catalogue service: Reads product catalog data
+# - User service: Reads/writes user account data
+#
+# PORT 27017: Standard MongoDB port
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: mongodb
+  name: mongodb
+spec:
+  ports:
+  - name: mongo
+    port: 27017
+    targetPort: 27017
+  selector:
+    service: mongodb

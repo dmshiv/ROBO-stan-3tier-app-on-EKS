@@ -1,0 +1,33 @@
+# =============================================================================
+# CATALOGUE SERVICE - Network Endpoint for Product Catalog API
+# =============================================================================
+# Exposes the Catalogue pods so other services can fetch product data.
+#
+# WHO CALLS THIS SERVICE?
+# -----------------------
+# - Web frontend: To display product listings and details
+# - Cart service: To get product prices when calculating totals
+#
+# SERVICE DISCOVERY:
+# ------------------
+# Other pods can reach this at: http://catalogue:8080
+# Kubernetes DNS automatically resolves "catalogue" to this Service's ClusterIP
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: catalogue
+  name: catalogue
+spec:
+  ports:
+  - name: http
+    # Port exposed by the Service (what callers use)
+    port: 8080
+    # Port on the pod (where traffic is forwarded)
+    targetPort: 8080
+  
+  # Route traffic to pods with label "service: catalogue"
+  selector:
+    service: catalogue

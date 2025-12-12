@@ -1,0 +1,92 @@
+# =============================================================================
+# MYSQL DEPLOYMENT - Relational Database for Ratings & Shipping
+# =============================================================================
+# MySQL stores structured data that needs relationships (tables, joins, etc.)
+#
+# WHY MYSQL? (vs MongoDB)
+# -----------------------
+# MongoDB: Document store - good for flexible, nested data (products, users)
+# MySQL: Relational DB - good for structured data with relationships
+#
+# Robot Shop uses MySQL for:
+# - Ratings/Reviews (user_id → product_id → rating relationship)
+# - Shipping rates (city → shipping_cost tables)
+#
+# ISTIO SECURITY CONTEXT:
+# -----------------------
+# NET_ADMIN capability is needed for Istio service mesh.
+# Istio injects a sidecar container that needs network permissions
+# to intercept and route traffic through the mesh.
+#
+# PRODUCTION CONSIDERATIONS:
+# --------------------------
+# - This deployment has NO persistent storage (data lost on restart!)
+# - For production: Use Amazon RDS, Cloud SQL, or add PersistentVolume
+# - Consider read replicas for scaling reads
+# - Enable automated backups
+#
+# SERVICES THAT USE THIS:
+# - Ratings service (stores reviews and ratings)
+# - Shipping service (stores shipping rates by city)
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  labels:
+    service: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: mysql
+  template:
+    metadata:
+      labels:
+        service: mysql
+    spec:
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      containers:
+      - name: mysql
+        # Custom MySQL image with pre-loaded Robot Shop schema
+        image: {{ .Values.image.repo }}/rs-mysql-db:{{ .Values.image.version }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # Security Context for Istio service mesh compatibility
+        # NET_ADMIN allows network configuration (needed by Istio sidecar)
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
+        
+        # MySQL default port
+        ports:
+        - containerPort: 3306
+        
+        # MySQL needs decent resources
+        # Memory is important for query caching and buffer pools
+        resources:
+          limits:
+            cpu: 200m
+            memory: 1024Mi
+          requests:
+            cpu: 100m
+            memory: 700Mi
+      
+      restartPolicy: Always
+      
+      # Optional scheduling preferences
+      {{- with .Values.mysql.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mysql.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mysql.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

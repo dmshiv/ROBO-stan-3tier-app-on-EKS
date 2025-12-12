@@ -1,0 +1,106 @@
+# =============================================================================
+# PODSECURITYPOLICY (PSP) - Security Rules for Pods
+# =============================================================================
+# PSP defines WHAT pods are allowed to do on the cluster.
+# It's like a security checklist that pods must comply with.
+#
+# IMPORTANT NOTE:
+# ---------------
+# PSP was DEPRECATED in Kubernetes 1.21 and REMOVED in 1.25!
+# Modern clusters use Pod Security Admission (PSA) or OPA/Gatekeeper instead.
+# This is kept for older cluster compatibility.
+#
+# WHY DO WE NEED THIS?
+# --------------------
+# Without restrictions, a compromised pod could:
+# - Run as root user (full system access)
+# - Access the host's filesystem
+# - Run privileged containers (like Docker in Docker)
+# - Access any volume type
+#
+# PSP prevents these security risks!
+#
+# HOW IT WORKS:
+# -------------
+# 1. PSP is defined (this file)
+# 2. ClusterRole grants permission to "use" the PSP
+# 3. ClusterRoleBinding connects ServiceAccount to ClusterRole
+# 4. Pods with that ServiceAccount must comply with PSP rules
+# =============================================================================
+
+# Only create if psp.enabled is true in values.yaml
+{{ if .Values.psp.enabled }}
+apiVersion: policy/v1beta1  # Note: deprecated API, may need updating
+kind: PodSecurityPolicy
+metadata:
+  name: robot-shop
+spec:
+  # =========================================================================
+  # PRIVILEGE SETTINGS - Prevent containers from getting too much power
+  # =========================================================================
+  
+  # allowPrivilegeEscalation: Can a process gain MORE privileges than its parent?
+  # false = NO! A child process can't become more powerful than parent
+  # This prevents attacks where a process escalates to root
+  allowPrivilegeEscalation: false
+  
+  # privileged: Can containers run in "privileged mode"?
+  # Privileged = almost the same as running on the host directly
+  # false = NO! Containers stay isolated
+  privileged: false
+
+  # =========================================================================
+  # USER/GROUP SETTINGS - Who can the container run as?
+  # =========================================================================
+  
+  # fsGroup: What group ID owns mounted volumes?
+  # RunAsAny = No restriction, any group ID allowed
+  # Other options: MustRunAs (specific ID), MustRunAsNonRoot
+  fsGroup:
+    rule: RunAsAny
+  
+  # runAsUser: What user ID can the container run as?
+  # RunAsAny = Any user ID allowed (including root UID 0)
+  # For better security, use "MustRunAsNonRoot"
+  runAsUser:
+    rule: RunAsAny
+  
+  # seLinux: SELinux security context settings
+  # SELinux adds another layer of access control (mainly RHEL/CentOS)
+  seLinux:
+    rule: RunAsAny
+  
+  # supplementalGroups: Additional group IDs for the container
+  supplementalGroups:
+    rule: RunAsAny
+
+  # =========================================================================
+  # LINUX CAPABILITIES - Fine-grained permissions
+  # =========================================================================
+  # Linux capabilities break up root's power into smaller pieces
+  # Instead of "all or nothing" root access, you grant specific abilities
+  #
+  # NET_ADMIN allows:
+  # - Configuring network interfaces
+  # - Managing IP tables/firewall rules
+  # - Setting up routing
+  # This is needed for Istio service mesh (traffic interception)
+  allowedCapabilities:
+  - 'NET_ADMIN'
+
+  # =========================================================================
+  # ALLOWED VOLUMES - What storage types can pods mount?
+  # =========================================================================
+  # We whitelist only the volume types our application needs
+  # This prevents pods from mounting dangerous volumes like hostPath
+  volumes:
+  - configMap             # ConfigMap volumes (config files)
+  - downwardAPI           # Pod metadata (name, namespace, labels)
+  - emptyDir              # Temporary storage (deleted when pod dies)
+  - persistentVolumeClaim # Persistent storage (databases)
+  - secret                # Secret volumes (passwords, tokens)
+  - projected             # Combines multiple sources into one volume
+  # BLOCKED (not listed, so not allowed):
+  # - hostPath: Would allow access to host filesystem (security risk!)
+  # - hostNetwork: Would share host's network namespace
+{{ end }}

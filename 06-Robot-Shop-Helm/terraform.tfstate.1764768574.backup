@@ -1,0 +1,312 @@
+{
+  "version": 4,
+  "terraform_version": "1.12.2",
+  "serial": 3,
+  "lineage": "47996fbd-2232-a0ad-941e-23cb75e6c241",
+  "outputs": {
+    "cluster_name": {
+      "value": "robot-shop-eks-cluster",
+      "type": "string"
+    },
+    "instructions": {
+      "value": "    \nTo get the Robot Shop URL, run:\n    \nkubectl get ingress robot-shop-ingress -n robot-shop -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'\n    \nOr check the file: alb-url.txt\n    \n",
+      "type": "string"
+    },
+    "namespace": {
+      "value": "robot-shop",
+      "type": "string"
+    },
+    "region": {
+      "value": "eu-central-1",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "data",
+      "type": "terraform_remote_state",
+      "name": "alb",
+      "provider": "provider[\"terraform.io/builtin/terraform\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "backend": "local",
+            "config": {
+              "value": {
+                "path": "../terraform-states/step5-alb-controller.tfstate"
+              },
+              "type": [
+                "object",
+                {
+                  "path": "string"
+                }
+              ]
+            },
+            "defaults": null,
+            "outputs": {
+              "value": {
+                "alb_controller_policy_arn": "arn:aws:iam::886511165402:policy/robot-shop-eks-cluster-aws-load-balancer-controller",
+                "alb_controller_role_arn": "arn:aws:iam::886511165402:role/robot-shop-eks-cluster-aws-load-balancer-controller",
+                "cluster_endpoint": "https://A46C15DBC2EAAF6AB86C58435F166D94.gr7.eu-central-1.eks.amazonaws.com",
+                "cluster_name": "robot-shop-eks-cluster",
+                "region": "eu-central-1",
+                "vpc_id": "vpc-0d4a801a4012c8438"
+              },
+              "type": [
+                "object",
+                {
+                  "alb_controller_policy_arn": "string",
+                  "alb_controller_role_arn": "string",
+                  "cluster_endpoint": "string",
+                  "cluster_name": "string",
+                  "region": "string",
+                  "vpc_id": "string"
+                }
+              ]
+            },
+            "workspace": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "data",
+      "type": "terraform_remote_state",
+      "name": "eks",
+      "provider": "provider[\"terraform.io/builtin/terraform\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "backend": "local",
+            "config": {
+              "value": {
+                "path": "../terraform-states/step2-eks.tfstate"
+              },
+              "type": [
+                "object",
+                {
+                  "path": "string"
+                }
+              ]
+            },
+            "defaults": null,
+            "outputs": {
+              "value": {
+                "cluster_arn": "arn:aws:eks:eu-central-1:886511165402:cluster/robot-shop-eks-cluster",
+                "cluster_certificate_authority_data": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJS3E2MTJzSmo4bzB3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TlRFeU1ETXhNakk1TkRkYUZ3MHpOVEV5TURFeE1qTTBORGRhTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURSbVZWcEV1ZkRNejRwTUZ1REYveEJwazFxZTIrOWp3TlRDRG1sRDhrQXpyOXU1eGw1OEdQOEFzaTgKY28ybzVYUTl6d0p4RUtZajc3Nlp2SVhWYVU4dE5NUHVOWG1uUEdpNXlnYWRwNVlJRDNxZnJNdksvdUtlKzFIbQpBSHQwdXBpRTdHY0FFTUR5d2NBMjFXaDMxWDY4aXhQVmdybHp2RzdRbjJoQ3FUb1ZqQUY4QkY1eDZzOEpjTGdjCk5LYy9Vem5EVlpwVzFYSEI1akxNd2Fyb1JSTUpUR2RtaVFrV0kxem5JQXMvajE5Z1o3QTQzZjZ4ZHdJRGlCNUUKaWovcENsbmtTOFE5aG9KN0lEZ2JBSi9qWTNub3JONlNpQm84RG9TYVh0bmJUeXlMQTIvQ0tBOWdOTUFFc2RTQgpmUi9wUENyWUhuQm81TllMakQ5Tmt3akwyekNmQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJTb3preFJYV2Z5RGxxem1ROHhTVGJadmZqS1RUQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQWFvcmNBTXBxNQpnenVPR2ttMVhURXRFT0lybk5waTlFTnlncEhSZGVDVDdqRk14RlJhdEZGeUNqb2UvMzU3Y1pyQzd5T1NtRi9CCjQyeHVGMVdhZkJ4TWxVQkZvWDVQWUtsMXVyY3prU2FNc1dDV0xrOVBCekx0c0cxWk12L2lvZ0YxZE4wc0F2d2UKM014V3R4dHlNZEd5eWhBYzVmdm9DM3h6T2MzVkdKaFZ1U09LY01QSzZHai9SRVJkQlkvYVFpZHJWL1FHMEVQbAp4MFNaZDJlbjQ0ZEU4MkxIZGxDV1NBRmhnWjlHUEkxYzV1YUJ5Tkl2bjRldTBHZTdlRUZNdy8xbHN0MmVmUFU5Cm4zR2NaT2R0WEpBeUM0cWU1MnQzVWtQQm1kZzI1MVM5Z3V3STZ6K05BRzBmaVZvU1NVZE4vcDNjUEo3R0Z5NzQKOFdsUTNmVzJzODBpCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K",
+                "cluster_endpoint": "https://A46C15DBC2EAAF6AB86C58435F166D94.gr7.eu-central-1.eks.amazonaws.com",
+                "cluster_name": "robot-shop-eks-cluster",
+                "cluster_security_group_id": "sg-0cc0ca1d80984e8e9",
+                "cluster_version": "1.28",
+                "oidc_issuer": "https://oidc.eks.eu-central-1.amazonaws.com/id/A46C15DBC2EAAF6AB86C58435F166D94",
+                "oidc_provider_arn": "arn:aws:iam::886511165402:oidc-provider/oidc.eks.eu-central-1.amazonaws.com/id/A46C15DBC2EAAF6AB86C58435F166D94",
+                "oidc_provider_url": "oidc.eks.eu-central-1.amazonaws.com/id/A46C15DBC2EAAF6AB86C58435F166D94",
+                "private_subnet_ids": [
+                  "subnet-0795431248436e675",
+                  "subnet-0ac562ca7caeb09aa"
+                ],
+                "public_subnet_ids": [
+                  "subnet-0e543c1f454f2dad9",
+                  "subnet-0df05aa9d93206036"
+                ],
+                "region": "eu-central-1",
+                "vpc_id": "vpc-0d4a801a4012c8438"
+              },
+              "type": [
+                "object",
+                {
+                  "cluster_arn": "string",
+                  "cluster_certificate_authority_data": "string",
+                  "cluster_endpoint": "string",
+                  "cluster_name": "string",
+                  "cluster_security_group_id": "string",
+                  "cluster_version": "string",
+                  "oidc_issuer": "string",
+                  "oidc_provider_arn": "string",
+                  "oidc_provider_url": "string",
+                  "private_subnet_ids": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "public_subnet_ids": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "region": "string",
+                  "vpc_id": "string"
+                }
+              ]
+            },
+            "workspace": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "data",
+      "type": "terraform_remote_state",
+      "name": "vpc",
+      "provider": "provider[\"terraform.io/builtin/terraform\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "backend": "local",
+            "config": {
+              "value": {
+                "path": "../terraform-states/step1-vpc.tfstate"
+              },
+              "type": [
+                "object",
+                {
+                  "path": "string"
+                }
+              ]
+            },
+            "defaults": null,
+            "outputs": {
+              "value": {
+                "availability_zones": [
+                  "eu-central-1a",
+                  "eu-central-1b"
+                ],
+                "cluster_name": "robot-shop-eks-cluster",
+                "internet_gateway_id": "igw-0a19c68d06bcb6826",
+                "nat_gateway_ids": [
+                  "nat-07f44e4667fa363b1",
+                  "nat-0040300a87f7482d6"
+                ],
+                "private_subnet_cidrs": [
+                  "10.0.10.0/24",
+                  "10.0.20.0/24"
+                ],
+                "private_subnet_ids": [
+                  "subnet-0795431248436e675",
+                  "subnet-0ac562ca7caeb09aa"
+                ],
+                "public_subnet_cidrs": [
+                  "10.0.1.0/24",
+                  "10.0.2.0/24"
+                ],
+                "public_subnet_ids": [
+                  "subnet-0e543c1f454f2dad9",
+                  "subnet-0df05aa9d93206036"
+                ],
+                "region": "eu-central-1",
+                "vpc_cidr": "10.0.0.0/16",
+                "vpc_id": "vpc-0d4a801a4012c8438"
+              },
+              "type": [
+                "object",
+                {
+                  "availability_zones": [
+                    "list",
+                    "string"
+                  ],
+                  "cluster_name": "string",
+                  "internet_gateway_id": "string",
+                  "nat_gateway_ids": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "private_subnet_cidrs": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "private_subnet_ids": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "public_subnet_cidrs": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "public_subnet_ids": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "region": "string",
+                  "vpc_cidr": "string",
+                  "vpc_id": "string"
+                }
+              ]
+            },
+            "workspace": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "kubernetes_namespace",
+      "name": "robot_shop",
+      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "robot-shop",
+            "metadata": [
+              {
+                "annotations": {},
+                "generate_name": "",
+                "generation": 0,
+                "labels": {
+                  "app": "robot-shop",
+                  "environment": "development",
+                  "name": "robot-shop"
+                },
+                "name": "robot-shop",
+                "resource_version": "2671",
+                "uid": "371160b1-f2e6-4a71-9427-f59e5649d5ee"
+              }
+            ],
+            "timeouts": null,
+            "wait_for_default_service_account": false
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "api_version": "v1",
+            "kind": "Namespace",
+            "name": "robot-shop"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjozMDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "data.terraform_remote_state.eks"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

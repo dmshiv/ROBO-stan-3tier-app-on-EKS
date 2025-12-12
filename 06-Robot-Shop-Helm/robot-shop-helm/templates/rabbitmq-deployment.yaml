@@ -1,0 +1,94 @@
+# =============================================================================
+# RABBITMQ DEPLOYMENT - Message Queue for Async Communication
+# =============================================================================
+# RabbitMQ is a message broker that enables services to communicate asynchronously.
+#
+# WHAT IS A MESSAGE QUEUE?
+# ------------------------
+# Think of it like a "post office" for your microservices:
+# - Service A puts a message in a "mailbox" (queue)
+# - Service B picks up and processes the message when ready
+# - Neither service needs to wait for the other (async)
+#
+# WHY USE MESSAGE QUEUES?
+# -----------------------
+# 1. DECOUPLING: Services don't need to know about each other
+# 2. RELIABILITY: Messages persist even if the consumer is down
+# 3. SCALABILITY: Add more consumers to process messages faster
+# 4. RESILIENCE: If one service is slow, others aren't blocked
+#
+# HOW ROBOT SHOP USES RABBITMQ:
+# -----------------------------
+# Payment → "Order placed" message → Queue → Dispatch service
+# This allows payment to complete instantly without waiting for shipping
+#
+# PORTS:
+# ------
+# 5672: AMQP protocol (how services send/receive messages)
+# 15672: Management UI (web dashboard to monitor queues)
+#
+# PRODUCTION CONSIDERATIONS:
+# --------------------------
+# - Use RabbitMQ cluster (3+ nodes) for high availability
+# - Consider Amazon MQ for managed RabbitMQ in AWS
+# - Enable persistence to survive restarts
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  labels:
+    service: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: rabbitmq
+  template:
+    metadata:
+      labels:
+        service: rabbitmq
+    spec:
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      containers:
+      - name: rabbitmq
+        # Official RabbitMQ image with management plugin (web UI)
+        # Alpine variant = smaller image size
+        image: rabbitmq:3.7-management-alpine
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # Two ports for different purposes
+        ports:
+        # 5672: AMQP - Main messaging protocol
+        - containerPort: 5672
+        # 15672: HTTP - Management UI (access at http://rabbitmq:15672)
+        - containerPort: 15672
+        
+        # Resource limits
+        # RabbitMQ needs decent memory for message storage
+        resources:
+          limits:
+            cpu: 200m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+      
+      restartPolicy: Always
+      
+      # Optional scheduling preferences
+      {{- with .Values.rabbitmq.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.rabbitmq.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.rabbitmq.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

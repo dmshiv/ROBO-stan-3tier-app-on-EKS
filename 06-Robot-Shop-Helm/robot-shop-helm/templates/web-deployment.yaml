@@ -1,0 +1,146 @@
+# =============================================================================
+# WEB FRONTEND DEPLOYMENT - The Main User Interface
+# =============================================================================
+# This is the "face" of Robot Shop - what customers see and interact with!
+#
+# WHAT DOES THIS SERVICE DO?
+# --------------------------
+# 1. Serves the static web pages (HTML, CSS, JavaScript)
+# 2. Acts as a reverse proxy to backend microservices
+# 3. Handles user requests and routes them to appropriate services
+#
+# TECHNOLOGY: Nginx web server + Node.js frontend
+#
+# HELM TEMPLATING EXPLAINED:
+# --------------------------
+# {{ .Values.xxx }} = Pulls values from values.yaml file
+# {{ if condition }} = Conditional logic (only include if true)
+# {{- xxx -}} = The dash trims whitespace (keeps YAML clean)
+# {{ xxx | default "value" }} = Use default if xxx is not set
+# =============================================================================
+
+# API version for Deployment resource (apps/v1 is the stable version)
+apiVersion: apps/v1
+
+# Kind: What type of Kubernetes object is this?
+# Deployment = "Run X copies of this container and keep them running"
+kind: Deployment
+
+# Metadata: Information ABOUT this deployment (name, labels, annotations)
+metadata:
+  # Name: How Kubernetes identifies this deployment
+  # Used in commands like: kubectl get deployment web
+  name: web
+  
+  # Labels: Key-value tags for organizing and selecting resources
+  # Think of labels like hashtags - they help group related things
+  labels:
+    service: web
+
+# Spec: The actual specification - "what do you want?"
+spec:
+  # Replicas: How many identical pods to run
+  # {{ .Values.web.replicas | default 2 }} means:
+  #   - Use the value from values.yaml (web.replicas)
+  #   - If not set, default to 2 replicas
+  # WHY 2+? High availability - if one pod dies, the other handles traffic
+  replicas: {{ .Values.web.replicas | default 2 }}
+  
+  # Selector: How the Deployment finds which pods belong to it
+  # MUST match the labels in template.metadata.labels
+  selector:
+    matchLabels:
+      service: web
+  
+  # Template: The "blueprint" for creating pods
+  # Every pod created by this deployment will look like this
+  template:
+    metadata:
+      labels:
+        service: web
+    
+    # Pod Specification - What runs inside the pod
+    spec:
+      # CONDITIONAL: Only use service account if Pod Security Policy is enabled
+      # PSP requires a service account with proper permissions
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      
+      # Containers: The actual applications running in the pod
+      # A pod can have multiple containers, but usually just one main app
+      containers:
+      - name: web
+        # Image: Which Docker image to use
+        # Templated to: robotshop/rs-web:latest (or whatever version is set)
+        image: {{ .Values.image.repo }}/rs-web:{{ .Values.image.version }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # CONDITIONAL: Only set Instana monitoring env vars if EUM key is provided
+        {{- if .Values.eum.key }}
+        env:
+        - name: INSTANA_EUM_KEY
+          value: {{ .Values.eum.key }}
+        - name: INSTANA_EUM_REPORTING_URL
+          value: {{ .Values.eum.url }}
+        {{- end}}
+        
+        # Ports: Which ports the container listens on
+        # 8080 = standard HTTP port for web traffic
+        ports:
+        - containerPort: 8080
+        
+        # Resources: CPU and Memory limits
+        # CRITICAL for production - prevents runaway containers from killing nodes
+        #
+        # requests = "I need at least this much" (used for scheduling)
+        # limits = "Never use more than this" (enforced at runtime)
+        #
+        # 200m CPU = 0.2 CPU cores (m = millicores, 1000m = 1 core)
+        # 100Mi memory = 100 Megabytes
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+        
+        # Volume Mounts: Attach external storage/config to the container
+        # Here we're mounting custom Nginx configuration
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+      
+      # Volumes: Define the external data sources for volumeMounts
+      # ConfigMap = Kubernetes object that stores configuration data
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: web-nginx-config
+      
+      # Restart Policy: What to do if the container crashes
+      # Always = Keep restarting forever (default for Deployments)
+      restartPolicy: Always
+      
+      # OPTIONAL SCHEDULING CONTROLS (only applied if set in values.yaml)
+      # These control WHERE pods get scheduled in the cluster
+      
+      # Affinity: "I prefer nodes with these characteristics"
+      {{- with .Values.web.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      # Node Selector: "I MUST run on nodes with these labels"
+      {{- with .Values.web.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      # Tolerations: "I can run on tainted nodes"
+      {{- with .Values.web.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

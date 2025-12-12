@@ -1,0 +1,1 @@
+k8s-robotsho-robotsho-b9d29a869f-413816630.eu-central-1.elb.amazonaws.com

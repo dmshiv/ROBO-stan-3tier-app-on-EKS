@@ -1,0 +1,100 @@
+# =============================================================================
+# SHIPPING SERVICE DEPLOYMENT - Shipping Cost Calculator
+# =============================================================================
+# This service calculates shipping costs for orders.
+#
+# WHAT DOES THIS SERVICE DO?
+# --------------------------
+# 1. Calculates shipping costs based on location and cart contents
+# 2. Queries for available shipping options
+# 3. Uses MySQL to store/retrieve shipping rate data
+#
+# JAVA APPLICATION - NEEDS MORE RESOURCES!
+# ----------------------------------------
+# Unlike Node.js/Go services, Java apps need:
+# - More memory (JVM heap + overhead)
+# - Longer startup time (JIT compilation)
+# - That's why we have 1000Mi memory limit (10x other services!)
+#
+# READINESS PROBE EXPLAINED:
+# --------------------------
+# Before sending traffic, Kubernetes checks if the app is ready.
+# - httpGet: /health - Calls this endpoint to check health
+# - initialDelaySeconds: 5 - Wait 5 seconds before first check
+# - periodSeconds: 5 - Check every 5 seconds
+# - failureThreshold: 30 - Allow 30 failures (Java needs time to start!)
+#
+# WHY SO MANY FAILURES ALLOWED?
+# Java apps can take 60-150 seconds to fully start:
+# 30 failures x 5 seconds = 150 seconds grace period
+#
+# TECHNOLOGY: Java (Spring Boot)
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipping
+  labels:
+    service: shipping
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: shipping
+  template:
+    metadata:
+      labels:
+        service: shipping
+    spec:
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      containers:
+      - name: shipping
+        image: {{ .Values.image.repo }}/rs-shipping:{{ .Values.image.version }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        ports:
+        - containerPort: 8080
+        
+        # JAVA NEEDS MORE RESOURCES!
+        # JVM is memory-hungry - 1000Mi (1GB) needed for heap + overhead
+        resources:
+          limits:
+            cpu: 200m
+            memory: 1000Mi
+          requests:
+            cpu: 100m
+            memory: 500Mi
+        
+        # Readiness Probe: "Is the app ready to receive traffic?"
+        # Critical for Java apps that take time to start
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          # Wait 5 seconds after container starts before first check
+          initialDelaySeconds: 5
+          # Check every 5 seconds
+          periodSeconds: 5
+          # Allow up to 30 failures (30 x 5 = 150 seconds for Java to start)
+          failureThreshold: 30
+          # Need 1 success to be considered ready
+          successThreshold: 1
+      
+      restartPolicy: Always
+      
+      # Optional scheduling preferences
+      {{- with .Values.shipping.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.shipping.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.shipping.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

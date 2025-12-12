@@ -1,0 +1,98 @@
+digraph "Robot Shop on AWS EKS" {
+  graph [
+    rankdir=LR,
+    bgcolor=white,
+    fontname="Arial",
+    fontsize=22,
+    pad=0.5,
+    splines=ortho,
+    nodesep=0.8,
+    ranksep=1.0
+  ];
+
+  node [shape=rectangle, style="rounded,filled", fillcolor="#f8fbff", fontname="Arial", fontsize=16];
+  edge [color="#4c566a", arrowsize=0.8, penwidth=1.4];
+
+  Users [label="Users\n(Internet traffic)", shape=oval, fillcolor="#e3f2fd"];
+
+  subgraph cluster_vpc {
+    label="AWS VPC 10.0.0.0/16  (Terraform 01-VPC-Networking)";
+    fontname="Arial Bold";
+    fontsize=20;
+    color="#1b4965";
+    style="rounded";
+
+    IGW [label="Internet Gateway\n(IGW)", fillcolor="#d1f0ff"];
+    NAT [label="NAT Gateway\n(Public Subnet)", fillcolor="#d1f0ff"];
+
+    subgraph cluster_public {
+      label="Public Subnets (10.0.1.0/24, 10.0.2.0/24)";
+      color="#7fc8f8";
+      ALB [label="Application Load Balancer\n(SQL)\nManaged by Helm aws-load-balancer-controller", fillcolor="#fef6e4"];
+    }
+
+    subgraph cluster_private {
+      label="Private Subnets (10.0.3.0/24, 10.0.4.0/24)";
+      color="#b9fbc0";
+      EKS [label="Amazon EKS Control Plane\n(Terraform 02-EKS-Cluster)\nOIDC + IRSA Enabled", fillcolor="#e8ffd2"];
+      NODES [label="EC2 Managed Node Group\n(Terraform 03-EC2-NodeGroup)\nt3.medium x2\nWhy EC2? Redis needs EBS-backed storage", fillcolor="#e8ffd2"];
+
+      subgraph cluster_system {
+        label="System Helm Deployments";
+        color="#ffd6ff";
+        EBSCSI [label="aws-ebs-csi-driver\n(Terraform 04-EBS-CSI-Driver)\nProvisioner for PersistentVolumes", fillcolor="#fde2ff"];
+        ALBCTRL [label="aws-load-balancer-controller\n(Terraform 05-ALB-Controller)\nCreates ALB from Ingress", fillcolor="#fde2ff"];
+      }
+
+      subgraph cluster_app {
+        label="Robot Shop Microservices (Helm: robot-shop, Terraform 06)";
+        color="#fcd5ce";
+        Web [label="web (Angular)\nEntry UI"];
+        Cart [label="cart (Node.js)\nUses Redis cache"];
+        Catalogue [label="catalogue (Node.js)"];
+        UserSvc [label="user (Node.js)"];
+        Shipping [label="shipping (Java)"];
+        Payment [label="payment (Python)"];
+        Ratings [label="ratings (PHP)"];
+        Dispatch [label="dispatch (Go)"];
+      }
+
+      subgraph cluster_data {
+        label="Stateful Services";
+        color="#ffd97d";
+        Mongo [label="MongoDB\n(catalogue,user data)"];
+        Redis [label="Redis\n(cart sessions)"];
+        MySQL [label="MySQL\n(shipping, ratings)"];
+        EBS [label="EBS gp3\nPersistent Volumes\nProvisioned via EBS CSI", fillcolor="#ffe066"];
+      }
+    }
+  }
+
+  note1 [label="Ingress → ALB → Service → Pod\nAuto reverse order for destroy", shape=note, fillcolor="#fff3bf"];
+  note2 [label="All pods deployed via Helm charts\nPipeline script orchestrates Terraform folders 01→06", shape=note, fillcolor="#fff3bf"];
+
+  Users -> IGW -> ALB -> Web;
+  Web -> Cart;
+  Web -> Catalogue;
+  Web -> UserSvc;
+  Cart -> Shipping -> Payment;
+  Dispatch -> Shipping;
+  Ratings -> MySQL;
+
+  Cart -> Redis;
+  Catalogue -> Mongo;
+  UserSvc -> Mongo;
+  Shipping -> MySQL;
+
+  Mongo -> EBS;
+  Redis -> EBS;
+  MySQL -> EBS;
+
+  ALBCTRL -> ALB [label="creates/updates", color="#1d3557"];
+  EBSCSI -> EBS [label="provisions", color="#1d3557"];
+  NAT -> NODES;
+  EKS -> NODES;
+
+  IGW -> note1 [style=dashed, color="#adb5bd"];
+  note1 -> note2 [style=dashed, color="#adb5bd"];
+}

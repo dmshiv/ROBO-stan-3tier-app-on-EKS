@@ -1,0 +1,59 @@
+# =============================================================================
+# CLUSTERROLE - Defines WHAT Permissions are Allowed
+# =============================================================================
+# RBAC = Role-Based Access Control
+# Think of it like a job description that lists what actions are permitted.
+#
+# WHY DO WE NEED THIS?
+# --------------------
+# By default, pods have limited permissions in Kubernetes.
+# If we want our pods to use PodSecurityPolicy (PSP), we need to GRANT
+# that permission explicitly.
+#
+# CLUSTERROLE vs ROLE:
+# --------------------
+# - Role: Permissions only in ONE namespace (like department rules)
+# - ClusterRole: Permissions across ALL namespaces (like company-wide rules)
+#
+# We use ClusterRole because PSP is a cluster-level resource!
+#
+# THE RBAC CHAIN:
+# ---------------
+# ClusterRole (this file) -> defines WHAT permissions
+#        |
+#        v
+# ClusterRoleBinding   -> connects WHO gets these permissions
+#        |
+#        v
+# ServiceAccount       -> the WHO (identity for pods)
+#        |
+#        v
+# Pods                 -> now have the permissions!
+# =============================================================================
+
+# Only create this if PSP is enabled (psp.enabled: true in values.yaml)
+{{ if .Values.psp.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+# ClusterRole has no namespace - it's cluster-wide!
+metadata:
+  name: robot-shop  # Name of this role (referenced by ClusterRoleBinding)
+# Rules define what this role can do
+rules:
+  # This rule allows using the robot-shop PodSecurityPolicy
+- apiGroups:
+  - policy             # API group where PSP lives
+  resourceNames:
+  - robot-shop         # Only can use the PSP named "robot-shop"
+  resources:
+  - podsecuritypolicies  # The type of resource
+  verbs:
+  - use                # The only action allowed: "use" the PSP
+  # VERBS EXPLAINED:
+  # - get: read one resource
+  # - list: read many resources
+  # - create: make new resources
+  # - update: modify resources
+  # - delete: remove resources
+  # - use: special verb for PSP (allows using the policy)
+{{ end }}

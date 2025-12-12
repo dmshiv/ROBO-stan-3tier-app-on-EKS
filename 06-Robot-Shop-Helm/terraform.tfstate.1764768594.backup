@@ -1,0 +1,69 @@
+{
+  "version": 4,
+  "terraform_version": "1.12.2",
+  "serial": 6,
+  "lineage": "47996fbd-2232-a0ad-941e-23cb75e6c241",
+  "outputs": {
+    "cluster_name": {
+      "value": "robot-shop-eks-cluster",
+      "type": "string"
+    },
+    "instructions": {
+      "value": "    \nTo get the Robot Shop URL, run:\n    \nkubectl get ingress robot-shop-ingress -n robot-shop -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'\n    \nOr check the file: alb-url.txt\n    \n",
+      "type": "string"
+    },
+    "namespace": {
+      "value": "robot-shop",
+      "type": "string"
+    },
+    "region": {
+      "value": "eu-central-1",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "kubernetes_namespace",
+      "name": "robot_shop",
+      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "robot-shop",
+            "metadata": [
+              {
+                "annotations": {},
+                "generate_name": "",
+                "generation": 0,
+                "labels": {
+                  "app": "robot-shop",
+                  "environment": "development",
+                  "name": "robot-shop"
+                },
+                "name": "robot-shop",
+                "resource_version": "2671",
+                "uid": "371160b1-f2e6-4a71-9427-f59e5649d5ee"
+              }
+            ],
+            "timeouts": null,
+            "wait_for_default_service_account": false
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "api_version": "v1",
+            "kind": "Namespace",
+            "name": "robot-shop"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjozMDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "data.terraform_remote_state.eks"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

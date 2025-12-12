@@ -1,0 +1,29 @@
+# =============================================================================
+# SHIPPING SERVICE - Network Endpoint for Shipping Calculator
+# =============================================================================
+# Exposes the Shipping service for calculating delivery costs.
+#
+# ENDPOINTS:
+# ----------
+# GET /shipping/{city} - Get shipping cost for a city
+# GET /cities - List available shipping destinations
+#
+# WHO CALLS THIS?
+# ---------------
+# - Web frontend: Shows shipping costs during checkout
+# - Cart service: Adds shipping to cart total
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: shipping
+  labels:
+    service: shipping
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  selector:
+    service: shipping

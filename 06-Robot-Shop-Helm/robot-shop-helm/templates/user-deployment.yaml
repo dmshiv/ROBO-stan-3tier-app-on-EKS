@@ -1,0 +1,91 @@
+# =============================================================================
+# USER SERVICE DEPLOYMENT - Authentication & User Management
+# =============================================================================
+# This service handles everything related to user accounts.
+#
+# WHAT DOES THIS SERVICE DO?
+# --------------------------
+# 1. User registration (create new accounts)
+# 2. User login/authentication (verify credentials)
+# 3. Session management (track logged-in users)
+# 4. User profile management (update details)
+#
+# DATA FLOW:
+# ----------
+# Login: User → Web → User Service → MongoDB (verify) → Redis (store session)
+# Browse: User → Web → User Service → Redis (check session) → Allow/Deny
+#
+# DEPENDENCIES:
+# -------------
+# - MongoDB: Stores user accounts (username, password hash, email)
+# - Redis: Stores active sessions (who's logged in)
+#
+# SECURITY NOTE:
+# --------------
+# In production, this service should:
+# - Use HTTPS everywhere
+# - Hash passwords with bcrypt/argon2
+# - Implement rate limiting for login attempts
+# - Use JWT tokens for stateless auth
+#
+# TECHNOLOGY: NodeJS
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  labels:
+    service: user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: user
+  template:
+    metadata:
+      labels:
+        service: user
+    spec:
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      containers:
+      - name: user
+        image: {{ .Values.image.repo }}/rs-user:{{ .Values.image.version }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # Instana APM for tracing authentication flows
+        env:
+          - name: INSTANA_AGENT_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+        
+        ports:
+        - containerPort: 8080
+        
+        # Lightweight - most work is done by MongoDB/Redis
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+      
+      restartPolicy: Always
+      
+      # Optional scheduling preferences
+      {{- with .Values.user.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.user.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.user.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

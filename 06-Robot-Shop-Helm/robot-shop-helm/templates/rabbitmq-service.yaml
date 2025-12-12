@@ -1,0 +1,44 @@
+# =============================================================================
+# RABBITMQ SERVICE - Network Endpoint for Message Broker
+# =============================================================================
+# Exposes RabbitMQ for async messaging between services.
+#
+# THREE PORTS - THREE PURPOSES:
+# -----------------------------
+# 5672 (AMQP): Main messaging protocol - where services send/receive messages
+# 15672 (HTTP): Management UI - web dashboard to monitor queues
+# 4369 (EPMD): Erlang Port Mapper - for RabbitMQ clustering (internal use)
+#
+# CONNECTION EXAMPLES:
+# --------------------
+# Messaging: amqp://rabbitmq:5672
+# Web UI: http://rabbitmq:15672 (user: guest, pass: guest)
+#
+# WHO CONNECTS?
+# -------------
+# - Payment service: Sends "order complete" messages
+# - Dispatch service: Receives orders to process
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  labels:
+    service: rabbitmq
+spec:
+  ports:
+  # Main AMQP messaging port
+  - name: tcp-amqp
+    port: 5672
+    targetPort: 5672
+  # Web management UI
+  - name: http-management
+    port: 15672
+    targetPort: 15672
+  # Erlang Port Mapper (clustering)
+  - name: tcp-epmd
+    port: 4369
+    targetPort: 4369
+  selector:
+    service: rabbitmq

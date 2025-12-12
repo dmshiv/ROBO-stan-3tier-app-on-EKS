@@ -1,0 +1,81 @@
+# =============================================================================
+# DISPATCH SERVICE DEPLOYMENT - Order Fulfillment Worker
+# =============================================================================
+# This service processes orders after payment and prepares them for shipping.
+#
+# WHAT DOES THIS SERVICE DO?
+# --------------------------
+# 1. Listens to RabbitMQ message queue for new orders
+# 2. Processes order details and prepares shipping information
+# 3. Coordinates with shipping service for delivery
+#
+# HOW IT WORKS (Async Processing):
+# --------------------------------
+# User pays → Payment Service → Sends message to RabbitMQ → Dispatch picks it up
+#
+# This is "fire and forget" - payment completes instantly, dispatch works in background
+#
+# WHY NO PORTS?
+# -------------
+# Unlike other services, Dispatch doesn't expose any HTTP endpoints.
+# It only CONSUMES messages from RabbitMQ (pull model, not push).
+# That's why the service.yaml has clusterIP: None (headless service)
+#
+# TECHNOLOGY: GoLang (fast, efficient for async processing)
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dispatch
+  labels:
+    service: dispatch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: dispatch
+  template:
+    metadata:
+      labels:
+        service: dispatch
+    spec:
+      {{ if .Values.psp.enabled }}
+      serviceAccountName: robot-shop
+      {{ end }}
+      containers:
+      - name: dispatch
+        image: {{ .Values.image.repo }}/rs-dispatch:{{ .Values.image.version }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        
+        # Environment variable for Instana APM tracing
+        env:
+          - name: INSTANA_AGENT_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+        
+        # Resource limits - dispatch is lightweight
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+      
+      restartPolicy: Always
+      
+      # Optional scheduling preferences
+      {{- with .Values.dispatch.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.dispatch.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.dispatch.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

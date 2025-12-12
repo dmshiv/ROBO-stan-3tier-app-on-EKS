@@ -1,0 +1,31 @@
+# =============================================================================
+# USER SERVICE - Network Endpoint for Authentication API
+# =============================================================================
+# Exposes the User service for login, registration, and session management.
+#
+# ENDPOINTS EXPOSED:
+# ------------------
+# POST /login - Authenticate user credentials
+# POST /register - Create new user account
+# GET /check - Verify if session is valid
+# GET /history - Get user's order history
+#
+# WHO CALLS THIS?
+# ---------------
+# - Web frontend: For login/register forms
+# - Other services: To verify user sessions
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: user
+  labels:
+    service: user
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  selector:
+    service: user

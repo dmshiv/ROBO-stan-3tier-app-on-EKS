@@ -1,0 +1,50 @@
+# =============================================================================
+# DISPATCH SERVICE - Headless Service for Message Consumer
+# =============================================================================
+# This is a HEADLESS SERVICE - very different from normal services!
+#
+# WHAT IS A HEADLESS SERVICE?
+# ---------------------------
+# Normal Service: Has a ClusterIP, load-balances traffic to pods
+# Headless Service: No ClusterIP (clusterIP: None), just DNS records
+#
+# WHY HEADLESS FOR DISPATCH?
+# --------------------------
+# Dispatch doesn't receive HTTP requests - it PULLS messages from RabbitMQ.
+# We still need a Service for:
+# 1. DNS resolution (other pods can find dispatch by name)
+# 2. Kubernetes tracking (knows which pods belong to dispatch)
+#
+# THE FAKE PORT (55555):
+# ----------------------
+# Kubernetes requires at least one port definition.
+# 55555 with targetPort: 0 is a placeholder - nothing actually listens there.
+# It's like having a phone number that nobody answers!
+#
+# WHEN TO USE HEADLESS SERVICES:
+# ------------------------------
+# - StatefulSets (each pod needs unique DNS)
+# - Services that don't accept incoming connections
+# - When you need direct pod IPs instead of load balancing
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: dispatch
+  labels:
+    service: dispatch
+spec:
+  # clusterIP: None = Headless Service
+  # No virtual IP assigned, just DNS records pointing to pod IPs
+  clusterIP: None
+  
+  # Placeholder port - dispatch doesn't actually listen on any port
+  # Required by Kubernetes but not used
+  ports:
+  - name: headless
+    port: 55555
+    targetPort: 0
+  
+  selector:
+    service: dispatch

@@ -1,0 +1,192 @@
+# =============================================================================
+# HELM VALUES FILE - values.yaml
+# =============================================================================
+# This is the "configuration center" for your entire application!
+#
+# WHAT IS values.yaml?
+# --------------------
+# Think of it like a "settings panel" for your app. Instead of hardcoding
+# values in each template file, we define them here ONCE and reference them
+# using {{ .Values.xxx }} syntax in templates.
+#
+# WHY IS THIS POWERFUL?
+# ---------------------
+# 1. SINGLE SOURCE OF TRUTH: Change a setting here, it updates everywhere
+# 2. ENVIRONMENT FLEXIBILITY: Override values for dev/staging/prod
+# 3. NO CODE CHANGES: Modify behavior without touching template files
+#
+# HOW TO OVERRIDE VALUES:
+# -----------------------
+# Option 1: Custom values file
+#   helm install robot-shop ./robot-shop-helm -f my-custom-values.yaml
+#
+# Option 2: Command line
+#   helm install robot-shop ./robot-shop-helm --set image.version=2.0.0
+#
+# Option 3: Both (command line takes priority)
+#   helm install robot-shop ./robot-shop-helm -f prod-values.yaml --set web.replicas=5
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# DOCKER IMAGE CONFIGURATION
+# -----------------------------------------------------------------------------
+# Where to pull the container images from and which version to use
+#
+# ANALOGY: If your app is a car, this section tells Kubernetes:
+#   - Which dealership (repo) to buy from
+#   - Which model year (version) to get
+#   - Whether to check for newer models (pullPolicy)
+# -----------------------------------------------------------------------------
+image:
+  # Repository: The Docker Hub username/organization where images are stored
+  # Full image path becomes: robotshop/rs-web:latest, robotshop/rs-cart:latest, etc.
+  repo: robotshop
+  
+  # Version: The image tag to use (like "latest", "v2.0.0", "stable")
+  # PRO TIP: In production, NEVER use "latest" - use specific versions for stability
+  version: latest
+  
+  # Pull Policy: When should Kubernetes download the image?
+  #   - Always: Download every time (good for "latest" tag, bad for speed)
+  #   - IfNotPresent: Only download if not already on the node (recommended)
+  #   - Never: Assume image exists locally (for air-gapped environments)
+  pullPolicy: IfNotPresent
+
+# -----------------------------------------------------------------------------
+# INSTANA END USER MONITORING (EUM) CONFIGURATION
+# -----------------------------------------------------------------------------
+# Instana is an Application Performance Monitoring (APM) tool
+# EUM tracks real user experience in the browser (page load times, errors, etc.)
+#
+# LEAVE THIS NULL unless you have an Instana account and want monitoring
+# -----------------------------------------------------------------------------
+eum:
+  # Your Instana EUM API key (get this from Instana dashboard)
+  key: null
+  # Instana reporting endpoint (choose based on your region)
+  url: https://eum-eu-west-1.instana.io
+  #url: https://eum-us-west-2.instana.io
+
+# -----------------------------------------------------------------------------
+# POD SECURITY POLICY (PSP)
+# -----------------------------------------------------------------------------
+# PSP = Rules that restrict what pods can do (run as root, use host network, etc.)
+#
+# NOTE: PSPs are DEPRECATED in Kubernetes 1.21+ and removed in 1.25+
+# Modern clusters use Pod Security Admission (PSA) instead
+#
+# Set to true ONLY if your cluster still uses PSPs (rare nowadays)
+# -----------------------------------------------------------------------------
+psp:
+  enabled: false
+
+# -----------------------------------------------------------------------------
+# NODEPORT VS CLUSTERIP
+# -----------------------------------------------------------------------------
+# How to expose services internally vs externally
+#
+# ClusterIP (nodeport: false):
+#   - Services only accessible INSIDE the cluster
+#   - Use Ingress or LoadBalancer for external access
+#   - RECOMMENDED for production with proper ingress setup
+#
+# NodePort (nodeport: true):
+#   - Services accessible via NodeIP:NodePort from outside
+#   - Good for local testing (Minikube, Kind, etc.)
+#   - NOT recommended for production (security + port management issues)
+# -----------------------------------------------------------------------------
+nodeport: false
+
+# -----------------------------------------------------------------------------
+# OPENSHIFT CONFIGURATION
+# -----------------------------------------------------------------------------
+# OpenShift is Red Hat's enterprise Kubernetes distribution
+# It has additional security contexts and routing mechanisms
+#
+# Set to true ONLY if deploying to OpenShift, OKD, or MiniShift
+# This adjusts security contexts and storage configurations
+# -----------------------------------------------------------------------------
+openshift: false
+
+# Create OpenShift Route (instead of Ingress)
+# Routes are OpenShift's native way to expose services externally
+ocCreateRoute: false
+
+# -----------------------------------------------------------------------------
+# WORKLOAD-SPECIFIC CONFIGURATIONS
+# -----------------------------------------------------------------------------
+# Each microservice can have its own scheduling preferences:
+#
+# AFFINITY: "I prefer to run on nodes with these characteristics"
+#   Example: Run on nodes with SSD storage, or spread across AZs
+#
+# NODE SELECTOR: "I MUST run on nodes with these labels"
+#   Example: Only run on nodes labeled 'disk=ssd'
+#
+# TOLERATIONS: "I can run on tainted nodes that others can't"
+#   Example: Run on nodes reserved for specific workloads
+#
+# WHY USE THESE?
+# - High availability: Spread pods across availability zones
+# - Performance: Run databases on high-memory nodes
+# - Cost optimization: Run non-critical workloads on spot instances
+# -----------------------------------------------------------------------------
+
+# CART SERVICE: Shopping cart functionality (uses Redis for session storage)
+# Lightweight service - default settings usually fine
+cart: {}
+
+# CATALOGUE SERVICE: Product catalog (reads from MongoDB)
+# Read-heavy service - consider running near MongoDB for low latency
+catalogue: {}
+
+# DISPATCH SERVICE: Order dispatch/shipping processor (uses RabbitMQ)
+# Async worker - can tolerate some latency
+dispatch: {}
+
+# MONGODB: NoSQL database for product catalog and user data
+# CRITICAL: Consider node affinity for storage performance
+mongodb: {}
+
+# MYSQL: Relational database for ratings/reviews
+# CRITICAL: Consider node affinity for storage performance
+mysql: {}
+
+# PAYMENT SERVICE: Payment processing
+payment:
+  # Payment gateway URL for processing transactions
+  # Default simulates PayPal; change for different providers
+  gateway: null
+  #gateway: https://www.worldpay.com
+
+# RABBITMQ: Message queue for async communication between services
+# CRITICAL: Message broker - ensure high availability in production
+rabbitmq: {}
+
+# RATINGS SERVICE: Product ratings and reviews (uses MySQL)
+ratings: {}
+
+# REDIS: In-memory cache for session data and cart storage
+redis:
+  # Storage class for Redis persistent volume
+  # gp3 = AWS EBS General Purpose SSD (good balance of price/performance)
+  # Other options: gp2, io1 (high IOPS), sc1 (cold storage)
+  storageClassName: gp3
+
+# SHIPPING SERVICE: Shipping cost calculator
+shipping: {}
+
+# USER SERVICE: User authentication and management (uses MongoDB + Redis)
+user: {}
+
+# -----------------------------------------------------------------------------
+# WEB FRONTEND CONFIGURATION
+# -----------------------------------------------------------------------------
+# The main web UI that customers interact with
+# Runs Nginx serving static files + reverse proxy to backend APIs
+# -----------------------------------------------------------------------------
+web:
+  # Number of pod replicas for high availability
+  # 2+ replicas ensures the app stays up if one pod dies or during deployments
+  # In production, match this to the number of Availability Zones
+  replicas: 2

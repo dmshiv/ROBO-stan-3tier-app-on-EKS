@@ -1,0 +1,180 @@
+{
+  "version": 4,
+  "terraform_version": "1.12.2",
+  "serial": 5,
+  "lineage": "47996fbd-2232-a0ad-941e-23cb75e6c241",
+  "outputs": {
+    "cluster_name": {
+      "value": "robot-shop-eks-cluster",
+      "type": "string"
+    },
+    "instructions": {
+      "value": "    \nTo get the Robot Shop URL, run:\n    \nkubectl get ingress robot-shop-ingress -n robot-shop -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'\n    \nOr check the file: alb-url.txt\n    \n",
+      "type": "string"
+    },
+    "namespace": {
+      "value": "robot-shop",
+      "type": "string"
+    },
+    "region": {
+      "value": "eu-central-1",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "data",
+      "type": "terraform_remote_state",
+      "name": "vpc",
+      "provider": "provider[\"terraform.io/builtin/terraform\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "backend": "local",
+            "config": {
+              "value": {
+                "path": "../terraform-states/step1-vpc.tfstate"
+              },
+              "type": [
+                "object",
+                {
+                  "path": "string"
+                }
+              ]
+            },
+            "defaults": null,
+            "outputs": {
+              "value": {
+                "availability_zones": [
+                  "eu-central-1a",
+                  "eu-central-1b"
+                ],
+                "cluster_name": "robot-shop-eks-cluster",
+                "internet_gateway_id": "igw-0a19c68d06bcb6826",
+                "nat_gateway_ids": [
+                  "nat-07f44e4667fa363b1",
+                  "nat-0040300a87f7482d6"
+                ],
+                "private_subnet_cidrs": [
+                  "10.0.10.0/24",
+                  "10.0.20.0/24"
+                ],
+                "private_subnet_ids": [
+                  "subnet-0795431248436e675",
+                  "subnet-0ac562ca7caeb09aa"
+                ],
+                "public_subnet_cidrs": [
+                  "10.0.1.0/24",
+                  "10.0.2.0/24"
+                ],
+                "public_subnet_ids": [
+                  "subnet-0e543c1f454f2dad9",
+                  "subnet-0df05aa9d93206036"
+                ],
+                "region": "eu-central-1",
+                "vpc_cidr": "10.0.0.0/16",
+                "vpc_id": "vpc-0d4a801a4012c8438"
+              },
+              "type": [
+                "object",
+                {
+                  "availability_zones": [
+                    "list",
+                    "string"
+                  ],
+                  "cluster_name": "string",
+                  "internet_gateway_id": "string",
+                  "nat_gateway_ids": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "private_subnet_cidrs": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "private_subnet_ids": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "public_subnet_cidrs": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "public_subnet_ids": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "region": "string",
+                  "vpc_cidr": "string",
+                  "vpc_id": "string"
+                }
+              ]
+            },
+            "workspace": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "kubernetes_namespace",
+      "name": "robot_shop",
+      "provider": "provider[\"registry.terraform.io/hashicorp/kubernetes\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "robot-shop",
+            "metadata": [
+              {
+                "annotations": {},
+                "generate_name": "",
+                "generation": 0,
+                "labels": {
+                  "app": "robot-shop",
+                  "environment": "development",
+                  "name": "robot-shop"
+                },
+                "name": "robot-shop",
+                "resource_version": "2671",
+                "uid": "371160b1-f2e6-4a71-9427-f59e5649d5ee"
+              }
+            ],
+            "timeouts": null,
+            "wait_for_default_service_account": false
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 1,
+          "identity": {
+            "api_version": "v1",
+            "kind": "Namespace",
+            "name": "robot-shop"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjozMDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "data.terraform_remote_state.eks"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}
